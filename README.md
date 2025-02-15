@@ -1,6 +1,7 @@
-# Postgres_Patroni_Etcd_Cluster_Setup
-
 # PostgreSQL Cluster with Patroni, etcd, and HAProxy
+
+## Overview
+We are setting up a high-availability PostgreSQL cluster using **three Ubuntu 22.04 instances**. Each of these machines will have **PostgreSQL 16, etcd, and Patroni** installed. HAProxy will be installed on **two of these machines**, but you can also use a separate machine for HAProxy.
 
 ## Prerequisites
 Ensure your system is up to date:
@@ -39,15 +40,15 @@ pip install psycopg2-binary
 sudo apt install -y patroni haproxy etcd
 ```
 
-## Configure etcd
-Edit `/etc/default/etcd`:
+## Configure etcd for Multi-Instance Setup
+Edit `/etc/default/etcd` on each node with respective values:
 ```sh
-ETCD_NAME="etcd3"
+ETCD_NAME="etcdN"  # Change etcdN to etcd1, etcd2, etcd3 accordingly
 ETCD_DATA_DIR="/var/lib/etcd"
 ETCD_LISTEN_PEER_URLS="http://0.0.0.0:2380"
 ETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379"
-ETCD_INITIAL_ADVERTISE_PEER_URLS="http://172.31.1.161:2380"
-ETCD_ADVERTISE_CLIENT_URLS="http://172.31.1.161:2379"
+ETCD_INITIAL_ADVERTISE_PEER_URLS="http://<PRIVATE_IP_OF_NODE>:2380"
+ETCD_ADVERTISE_CLIENT_URLS="http://<PRIVATE_IP_OF_NODE>:2379"
 ETCD_INITIAL_CLUSTER="etcd1=http://172.31.3.175:2380,etcd2=http://172.31.15.104:2380,etcd3=http://172.31.1.161:2380"
 ETCD_INITIAL_CLUSTER_TOKEN="pg_cluster"
 ETCD_INITIAL_CLUSTER_STATE="new"
@@ -90,14 +91,14 @@ Edit `/etc/patroni.yml`:
 ```yaml
 scope: postgres
 namespace: /db/
-name: node3
+name: nodeN  # Change nodeN to node1, node2, or node3
 
 restapi:
-  listen: 172.31.1.161:8008
-  connect_address: 172.31.1.161:8008
+  listen: <PRIVATE_IP_OF_NODE>:8008
+  connect_address: <PRIVATE_IP_OF_NODE>:8008
 
 etcd:
-  host: 172.31.1.161:2379
+  host: <PRIVATE_IP_OF_NODE>:2379
 
 bootstrap:
   dcs:
@@ -128,8 +129,8 @@ users:
 
 postgresql:
   bin_dir: /usr/lib/postgresql/16/bin
-  listen: 172.31.1.161:5432
-  connect_address: 172.31.1.161:5432
+  listen: <PRIVATE_IP_OF_NODE>:5432
+  connect_address: <PRIVATE_IP_OF_NODE>:5432
   data_dir: /data/patroni
   pgpass: /tmp/pgpass
   authentication:
@@ -192,26 +193,6 @@ backend postgresql_primary
   server node1 172.31.3.175:5432 check port 8008
   server node2 172.31.15.104:5432 check port 8008
   server node3 172.31.1.161:5432 check port 8008
-
-frontend postgresql_read
-  bind *:5001
-  mode tcp
-  default_backend postgresql_replicas
-
-backend postgresql_replicas
-  mode tcp
-  balance roundrobin
-  option tcp-check
-  default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
-  server node1 172.31.3.175:5432 check port 8008 backup
-  server node2 172.31.15.104:5432 check port 8008
-  server node3 172.31.1.161:5432 check port 8008
-
-listen stats
-  mode http
-  bind *:7000
-  stats enable
-  stats uri /
 ```
 
 ## Start HAProxy
@@ -221,5 +202,6 @@ sudo systemctl restart haproxy
 
 ## Conclusion
 Your PostgreSQL cluster is now set up with high availability using Patroni, etcd, and HAProxy. You can monitor HAProxy stats at `http://<haproxy-host>:7000/`. Happy clustering! 🚀
+
 
 Any issues you can reachout to me : md.jafar95@gmail.com

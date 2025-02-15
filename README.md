@@ -201,7 +201,7 @@ sudo systemctl restart haproxy
 ```
 
 ## Conclusion
-Your PostgreSQL cluster is now set up with high availability using Patroni, etcd, and HAProxy. You can monitor HAProxy stats at `http://<haproxy-host>:7000/`. Happy clustering! 🚀
+Your PostgreSQL cluster is now set up with high availability using Patroni, etcd, and HAProxy. You can monitor HAProxy stats at `http://<haproxy-host>:7000/`.  🚀
 
 
-Any issues you can reachout to me : md.jafar95@gmail.com
+
